@@ -1,0 +1,604 @@
+---
+title: "Final final"
+output: html_document
+date: "2024-05-06"
+---
+
+```{r}
+# Cross sectional Codes
+
+# Loading data from Excel, setting time
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(lubridate)
+
+# Load the data file
+df <- read.csv('/Users/sgw_swag/Desktop/Sgw_swag/Columbia/Spring 2024/Linear Regression Models (STAT 4205)/Final project/Cross sectional/Concrete_dataset.csv')
+head(df)
+
+
+# Check null variables
+na_values <- is.na(df)
+na_counts <- colSums(na_values)
+print(na_counts)
+
+# Make sure no duplicates
+duplicates <- duplicated(df)
+num_duplicates <- sum(duplicates)
+print(paste("Number of duplicates:", num_duplicates))
+
+
+# 1. Preview of data set
+
+# Print structure information of the data frame
+str(df)
+# Print summary information including data types and number of non-NA values
+summary(df)
+
+
+# 2.1 Distribution of data
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+# Select only numerical columns
+numeric_cols <- sapply(df, is.numeric)
+df_numeric <- df[, numeric_cols]
+
+# Create a list to store plots
+plot_list <- list()
+
+# Generate a plot for each numerical column
+for (col_name in names(df_numeric)) {
+  # Using tidy evaluation with the aes() function
+  p <- ggplot(df, aes(x = .data[[col_name]])) + 
+    geom_histogram(aes(y = ..density..), bins = 30, fill = "blue", alpha = 0.4) +
+    geom_density(color = "red", size = 1.5) +
+    labs(x = col_name, y = "Density") +
+    theme_minimal() +
+    ggtitle(paste("Distribution of", col_name)) +
+    annotate("text", x = Inf, y = Inf, label = sprintf("Mean: %.2f\nSD: %.2f\nMedian: %.2f\nMin: %.2f\nMax: %.2f", 
+                                                       mean(df[[col_name]], na.rm = TRUE), 
+                                                       sd(df[[col_name]], na.rm = TRUE), 
+                                                       median(df[[col_name]], na.rm = TRUE), 
+                                                       min(df[[col_name]], na.rm = TRUE), 
+                                                       max(df[[col_name]], na.rm = TRUE)), 
+             hjust = 1.1, vjust = 1.1, size = 3.5)
+  
+  plot_list[[col_name]] <- p
+}
+
+# Arrange plots into a grid
+grid_plots <- do.call(grid.arrange, c(plot_list, ncol = 3))
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+
+# Assuming 'df' is your dataframe
+# Reorder the columns: numeric columns first, then factor/object columns
+df <- df %>%
+  select(where(is.numeric), where(is.factor))
+
+# Calculate the number of rows and columns needed for the subplots
+n_cols <- 3
+n_rows <- ceiling(length(df) / n_cols)
+
+# Create a list to store plots
+plot_list <- list()
+
+# Generate box plots for each column
+for (col in names(df)) {
+  p <- ggplot(df, aes_string(y = col)) +
+    geom_boxplot(outlier.colour = "red", fill = "lightblue") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5)) +
+    labs(title = col, y = NULL, x = NULL)
+  
+  plot_list[[col]] <- p
+}
+
+# Arrange plots in a grid
+do.call(gridExtra::grid.arrange, c(plot_list, ncol = n_cols, nrow = n_rows))
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+
+# Define the numerical features and the target variable
+num_features <- c('Cement', 'Blast.Furnace.Slag', 'Fly.Ash', 'Water', 
+                  'Coarse.Aggregate', 'Age..day.', 'Superplasticizer', 'Fine.Aggregate')
+target <- 'Concrete.compressive.strength'
+color <- '#0277bd'
+
+# Set up for a 3x3 grid
+num_rows <- 3
+num_cols <- 3
+
+# Create a list to store plots
+plot_list <- vector("list", length = num_rows * num_cols)
+
+# Generate scatter plots for each feature
+for (i in seq_along(num_features)) {
+  p <- ggplot(data = df, aes_string(x = num_features[i], y = target)) +
+    geom_point(color = color, size = 2) +
+    labs(title = paste('vs.', num_features[i]), x = num_features[i], y = target) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5))
+  
+  plot_list[[i]] <- p
+}
+
+# Arrange plots in a grid
+do.call(gridExtra::grid.arrange, c(plot_list, ncol = num_cols, nrow = num_rows))
+
+# Correlation matrix
+library(corrplot)
+
+# Selecting only the relevant variables for the correlation matrix
+relevant_vars <- c("Cement", "Blast.Furnace.Slag", "Fly.Ash", "Water", "Superplasticizer", 
+                   "Coarse.Aggregate", "Fine.Aggregate", "Age..day.")
+df_relevant <- df[, relevant_vars]
+
+# Calculate the correlation matrix
+cor_matrix <- cor(df_relevant, use="complete.obs")  # Handles missing values by using available data
+
+# Plotting the correlation matrix with numbers
+corrplot(cor_matrix, method="color", type="upper", order="hclust", 
+         tl.col="black", tl.srt=45, addrect=2, title="Correlation Matrix of Concrete Components",
+         cl.pos = 'n', # Position of the color legend (n = none)
+         addCoef.col = "black", # Color of the correlation coefficients
+         number.cex = 0.8) # Font size of the correlation coefficients
+
+# Selecting only the relevant variables for the correlation matrix
+relevant_vars <- c("Cement", "Blast.Furnace.Slag", "Fly.Ash", "Water", 
+                   "Coarse.Aggregate")
+df_relevant <- df[, relevant_vars]
+
+# Calculate the correlation matrix
+cor_matrix <- cor(df_relevant, use="complete.obs")  # Handles missing values by using available data
+
+# Plotting the correlation matrix with numbers
+corrplot(cor_matrix, method="color", type="upper", order="hclust", 
+         tl.col="black", tl.srt=45, addrect=2, title="Correlation Matrix of Concrete Components",
+         cl.pos = 'n', # Position of the color legend (n = none)
+         addCoef.col = "black", # Color of the correlation coefficients
+         number.cex = 0.8) # Font size of the correlation coefficients
+
+# VIF
+library(car)
+df_numeric <- df_numeric %>%
+  select(-Superplasticizer, -Fine.Aggregate, -Age..day.)
+model <- lm(Concrete.compressive.strength ~ ., data = df_numeric)
+vif_values <- vif(lm(Concrete.compressive.strength ~ ., data = df_numeric))
+print(vif_values)
+
+# Cook's distance
+# Fit a linear regression model
+model <- lm(Concrete.compressive.strength ~ ., data = df_numeric)
+
+# Calculate Cook's distance
+cooks_d <- cooks.distance(model)
+
+# Plot Cook's distance
+plot(cooks_d, pch = 20, main = "Cook's Distance Plot", xlab = "Observation Index", ylab = "Cook's Distance")
+abline(h = 4/length(cooks_d), col = "red", lty = 2)
+
+# Outlier Removal
+n <- nrow(df_numeric)
+k <- length(coef(model))
+threshold <- 4 / (n - k - 1)
+
+outliers <- which(cooks_d > threshold)
+print(outliers)
+all_outliers <- unique(c(outliers, 142, 497))
+data_cleaned <- df_numeric[-all_outliers, ]
+
+# Data Standardization
+data_standardized <- scale(data_cleaned)
+
+# Convert back to a data frame, if necessary
+data_standardized <- as.data.frame(data_standardized)
+
+
+# View the summary to check the transformation
+summary(data_standardized)
+
+
+# Fit a model using the standardized data
+# Replace 'target_variable' with the actual name of your dependent variable
+model_standardized <- lm(Concrete.compressive.strength ~ ., data = data_standardized)
+
+# Residuals VS Fitted Values
+# Extract fitted values and residuals
+fitted_values <- fitted(model_standardized)
+residuals <- residuals(model_standardized)
+
+# Plot residuals vs fitted values
+plot(fitted_values, residuals, main = "Residuals vs Fitted Values Plot",
+     xlab = "Fitted Values", ylab = "Residuals", pch = 20)
+abline(h = 0, col = "red", lty = 2)  # Add a horizontal line at y = 0 for reference
+
+# Observed VS Fitted
+observed <- data_standardized$Concrete.compressive.strength
+fitted_values <- fitted(model_standardized)
+
+# Plot observed vs fitted values
+plot(fitted_values, observed, main = "Observed vs Fitted Values Plot",
+     xlab = "Fitted Values", ylab = "Observed Values", pch = 20)
+abline(0, 1, col = "red")  # Add a diagonal reference line
+
+
+# Test for Homoscedasticity (Breusch-Pagan Test)
+library(lmtest)
+library(tseries)
+bp_test <- bptest(model_standardized)
+print(bp_test)
+
+# Test for Autocorrelation (Durbin-waston test)
+# lmtest library
+dw_test <- dwtest(model_standardized)
+print(dw_test)
+
+
+# Test for Normality(Shapiro-Wilk Test)
+shapiro_test <- shapiro.test(residuals)
+print(shapiro_test)
+
+# Test for Normality(Jarque-Bera Test)
+jb_test <- jarque.bera.test(residuals)
+print(jb_test)
+
+# Test for Normality(Q-Q plot)
+qqnorm(residuals)
+qqline(residuals)
+
+X_train<- data.frame(
+  Cement = data_standardized$Cement,
+  Blast_Furnace_Slag = data_standardized$Blast.Furnace.Slag,
+  Fly_Ash = data_standardized$Fly.Ash,
+  Water = data_standardized$Water,
+  Coarse_Aggregate = data_standardized$Coarse.Aggregate
+)
+y_train<- data_standardized$Concrete.compressive.strength
+
+y_train <- data.frame(Concrete_compressive_strength = y_train)
+
+names(X_train) <- gsub("_",".",names(X_train))
+names(X_train)
+
+
+
+# Model Selection Part:
+# Need to include: BP test p-value, DW test statistic, JB test p-value, RMSE, MAE, R square, adjusted R square
+
+# OLS
+
+library(lmtest)
+library(Metrics)
+library(tseries)
+
+# Combine y_train and X_train into one data frame
+train_data <- cbind(y_train, X_train)
+
+# Fit the linear model
+model_standardized<- lm(Concrete_compressive_strength ~ ., data = train_data)
+
+# Breusch-Pagan test for heteroscedasticity
+bp_test <- bptest(model_standardized)
+
+# Durbin-Watson test for autocorrelation
+dw_test <- dwtest(model_standardized)
+
+# Jarque-Bera test for normality of residuals
+jb_test <- jarque.bera.test(residuals)
+
+# Calculate RMSE and MAE
+# Make predictions
+predicted <- predict(model_standardized, newdata = X_train)
+
+# Compute RMSE
+rmse <- sqrt(mean((y_train$Concrete_compressive_strength - predicted) ^ 2))
+# Compute MAE
+mae <- mean(abs(y_train$Concrete_compressive_strength - predicted))
+
+
+
+# Get R squared and Adjusted R squared from the model summary
+summary_stats <- summary(model_standardized)
+r_squared <- summary_stats$r.squared
+adj_r_squared <- summary_stats$adj.r.squared
+
+# Print results
+cat("BP Test p-value:", bp_test$p.value, "\n")
+cat("DW Test statistic:", dw_test$DW, "\n")
+cat("JB Test p-value:", jb_test$p.value, "\n")
+cat("RMSE:", rmse, "\n")
+cat("MAE:", mae, "\n")
+cat("R squared:", r_squared, "\n")
+cat("Adjusted R squared:", adj_r_squared, "\n")
+
+
+# WLS
+predictions <- predict(model_standardized, se.fit = TRUE)
+standard_errors <- predictions$se.fit
+weights <- 1 / (standard_errors^2)
+
+# Fit WLS model using the defined weights
+wls_model <- lm(Concrete.compressive.strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Coarse.Aggregate, data = data_standardized, weights = weights)
+wls_model
+
+# Breusch-Pagan test for heteroscedasticity
+wls_bp_test <- bptest(wls_model)
+
+# Assuming 'wls_model' is your model
+residuals_wls <- residuals(wls_model)
+# Compute the numerator (sum of squared differences of successive residuals)
+
+dw_numerator <- sum(diff(residuals_wls)^2)
+
+# Compute the denominator (sum of squared residuals)
+dw_denominator <- sum(residuals_wls^2)
+
+# Compute the Durbin-Watson statistic
+dw_statistic <- dw_numerator / dw_denominator
+
+# Jarque-Bera test for normality of residuals
+wls_jb_test <- jarque.bera.test(residuals(wls_model))
+
+# Predict and calculate RMSE and MAE
+wls_predicted <- predict(wls_model, newdata = X_train)
+wls_rmse_value <- rmse(y_train$Concrete.compressive.strength, wls_predicted)
+wls_mae_value <- mae(y_train$Concrete.compressive.strength, wls_predicted)
+
+
+# Compute RMSE
+wls_rmse_value <- sqrt(mean((y_train$Concrete_compressive_strength - wls_predicted) ^ 2))
+# Compute MAE
+wls_mae_value <- mean(abs(y_train$Concrete_compressive_strength - wls_predicted))
+
+
+# Get R squared and Adjusted R squared from the model summary
+wls_summary_stats <- summary(wls_model)
+wls_r_squared <- wls_summary_stats$r.squared
+wls_adj_r_squared <- wls_summary_stats$adj.r.squared
+
+# Print results
+cat("WLS BP Test p-value:", wls_bp_test$p.value, "\n")
+cat("Durbin-Watson statistic:", dw_statistic, "\n")
+cat("WLS JB Test p-value:", wls_jb_test$p.value, "\n")
+cat("WLS RMSE:", wls_rmse_value, "\n")
+cat("WLS MAE:", wls_mae_value, "\n")
+cat("WLS R squared:", wls_r_squared, "\n")
+cat("WLS Adjusted R squared:", wls_adj_r_squared, "\n")
+
+# GLS
+library(nlme)
+library(stats)
+library(Matrix)
+library(tseries)
+library(Metrics)
+# Fit an OLS model (Example)
+ols_model <- lm(Concrete_compressive_strength ~ ., data = train_data)
+
+# Get residuals from the OLS model
+residuals <- residuals(ols_model)
+
+# Calculate the first-lag autocorrelation
+acf_result <- acf(residuals, lag.max = 1, plot = FALSE)
+rho <- acf_result$acf[2]
+
+# Construct the Toeplitz matrix
+order <- 0:(length(residuals) - 1)
+toeplitz_matrix <- rho^toeplitz(order)
+
+# Fit the GLS model using the Toeplitz matrix as the correlation structure
+gls_model <- gls(Concrete_compressive_strength ~ ., data = train_data,
+  correlation = corAR1(value = rho))
+
+#BP Test
+# Get residuals from the GLS model
+squared_residuals <- residuals(gls_model)^2
+auxiliary_data <- cbind(squared_residuals, X_train)
+
+# Fit an auxiliary regression of squared residuals on predictors
+auxiliary_model <- lm(squared_residuals ~ ., data = auxiliary_data)
+
+# Extract the residual sum of squares (RSS) from the auxiliary model
+rss <- sum(auxiliary_model$residuals^2)
+
+# Calculate the Breusch-Pagan test statistic
+bp_test_statistic <- (nobs(gls_model) * sum(auxiliary_model$fitted.values^2)) / rss
+
+# Degrees of freedom for the test statistic
+df <- length(coef(auxiliary_model)) - 1
+
+# Calculate the p-value using chi-square distribution
+bp_test_p_value <- 1 - pchisq(bp_test_statistic, df)
+
+# Durbin-Watson test for autocorrelation
+# Calculate the residuals' first differences
+residual_diff <- diff(residuals(gls_model))
+
+# Calculate the Durbin-Watson test statistic
+dw_test_statistic <- sum(diff(residuals(gls_model))^2) / sum(residuals(gls_model)^2)
+
+# Jarque-Bera test for normality of residuals
+jb_test <- jarque.bera.test(residuals(gls_model))
+
+# Calculate RMSE and MAE
+predicted <- predict(gls_model, newdata = X_train)
+rmse_value <- rmse(y_train$Concrete_compressive_strength, predicted)
+mae_value <- mae(y_train$Concrete_compressive_strength, predicted)
+
+# Calculate R-squared and Adjusted R-squared
+ss_total <- sum((train_data$Concrete_compressive_strength - 
+                   mean(train_data$Concrete_compressive_strength))^2)
+ss_residual <- sum((train_data$Concrete_compressive_strength - predicted)^2)
+r_squared <- 1 - (ss_residual / ss_total)
+adj_r_squared <- 1 - (1 - r_squared) * ((nrow(train_data) - 1) / 
+                                          (nrow(train_data) - ncol(train_data) - 1))
+
+# Print results
+cat("BP Test p-value:", bp_test_p_value, "\n")
+cat("DW Test statistic:", dw_test_statistic, "\n")
+cat("JB Test p-value:", jb_test$p.value, "\n")
+cat("RMSE:", rmse_value, "\n")
+cat("MAE:", mae_value, "\n")
+cat("R squared:", r_squared, "\n")
+cat("Adjusted R squared:", adj_r_squared, "\n")
+
+
+# Lasso
+# no package for tests, need to manually calculate! 
+
+library(glmnet)
+library(lmtest)
+# Prepare the matrix of predictors
+X_matrix <- as.matrix(X_train)
+
+# Convert the response to a vector
+y_vector <- y_train$Concrete_compressive_strength
+
+# Fit Lasso model
+
+lasso_model <- glmnet(X_matrix, y_vector, alpha = 1e-06)  # Alpha = 1 for Lasso
+
+# Cross-validation for lambda selection
+cv_lasso <- cv.glmnet(X_matrix, y_vector, alpha = 1e-06)
+opt_lambda <- cv_lasso$lambda.min  # Minimum lambda from CV
+
+# Predict using the optimal lambda
+lasso_pred <- predict(lasso_model, s = opt_lambda, newx = X_matrix)
+
+
+# Calculate residuals
+lasso_residuals <- y_vector - lasso_pred
+# Breusch-Pagan test
+lasso_bp_test <- bptest(y_vector ~ lasso_pred, data = data.frame(y_vector, lasso_pred),
+                        varformula = ~ lasso_pred, studentize = FALSE)
+
+# Calculate Durbin-Watson statistic manually
+dw_numerator <- sum(diff(lasso_residuals)^2)
+dw_denominator <- sum(lasso_residuals^2)
+dw_statistic <- dw_numerator / dw_denominator
+
+# Jarque-Bera test
+lasso_jb_test <- jarque.bera.test(lasso_residuals)
+
+# Calculate RMSE and MAE
+lasso_rmse <- sqrt(mean((y_vector - lasso_pred)^2))
+lasso_mae <- mean(abs(y_vector - lasso_pred))
+
+# Calculate R squared and Adjusted R squared
+lasso_r_squared <- cor(y_vector, lasso_pred)^2
+lasso_adj_r_squared <- 1 - (1-lasso_r_squared)*(length(y_vector)-1)/(length(y_vector)-ncol(X_matrix)-1)
+
+# Print results
+cat("Lasso BP Test p-value:", lasso_bp_test$p.value, "\n")
+cat("Durbin-Watson statistic:", dw_statistic, "\n")
+cat("Lasso JB Test p-value:", lasso_jb_test$p.value, "\n")
+cat("Lasso RMSE:", lasso_rmse, "\n")
+cat("Lasso MAE:", lasso_mae, "\n")
+cat("Lasso R squared:", lasso_r_squared, "\n")
+cat("Lasso Adjusted R squared:", lasso_adj_r_squared, "\n")
+
+
+
+
+
+
+# Ridge
+cv_ridge <- cv.glmnet(X_matrix, y_vector, alpha = 1.0718913192051265)  # Alpha = 0 for Ridge regression
+opt_lambda <- cv_ridge$lambda.min  # Optimal lambda value
+
+# Predict using the optimal lambda
+ridge_pred <- predict(cv_ridge, s = opt_lambda, newx = X_matrix)
+
+# Calculate residuals
+ridge_residuals <- y_vector - ridge_pred
+
+library(lmtest)
+library(tseries)
+library(Metrics)
+
+# Breusch-Pagan test
+ridge_bp_test <- bptest(y_vector ~ ridge_pred, data = data.frame(y_vector, ridge_pred),
+                        varformula = ~ ridge_pred, studentize = FALSE)
+
+# Durbin-Watson statistic
+dw_numerator <- sum(diff(ridge_residuals)^2)
+dw_denominator <- sum(ridge_residuals^2)
+dw_statistic <- dw_numerator / dw_denominator
+
+# Jarque-Bera test for normality of residuals
+ridge_jb_test <- jarque.bera.test(ridge_residuals)
+
+# RMSE and MAE
+ridge_rmse <- sqrt(mean((y_vector - ridge_pred)^2))
+ridge_mae <- mean(abs(y_vector - ridge_pred))
+
+# R squared and Adjusted R squared
+ridge_r_squared <- cor(y_vector, ridge_pred)^2
+ridge_adj_r_squared <- 1 - (1-ridge_r_squared)*(length(y_vector)-1)/(length(y_vector)-ncol(X_matrix)-1)
+
+
+# Print results
+cat("Ridge BP Test p-value:", ridge_bp_test$p.value, "\n")
+cat("Durbin-Watson statistic:", dw_statistic, "\n")
+cat("Ridge JB Test p-value:", ridge_jb_test$p.value, "\n")
+cat("Ridge RMSE:", ridge_rmse, "\n")
+cat("Ridge MAE:", ridge_mae, "\n")
+cat("Ridge R squared:", ridge_r_squared, "\n")
+cat("Ridge Adjusted R squared:", ridge_adj_r_squared, "\n")
+
+
+
+# Elasic Net
+# Fit Elastic Net model with cross-validation
+
+cv_elastic <- cv.glmnet(X_matrix, y_vector, alpha = 0.5)  # Alpha = 0.5 for a balance of Ridge and Lasso
+opt_lambda <- cv_elastic$lambda.min  # Optimal lambda value
+
+# Predict using the optimal lambda
+elastic_pred <- predict(cv_elastic, s = opt_lambda, newx = X_matrix)
+
+# Calculate residuals
+elastic_residuals <- y_vector - elastic_pred
+
+
+# Breusch-Pagan test
+elastic_bp_test <- bptest(y_vector ~ elastic_pred, data = data.frame(y_vector, elastic_pred),
+                          varformula = ~ elastic_pred, studentize = FALSE)
+
+# Durbin-Watson statistic
+dw_numerator <- sum(diff(elastic_residuals)^2)
+dw_denominator <- sum(elastic_residuals^2)
+dw_statistic <- dw_numerator / dw_denominator
+
+# Jarque-Bera test for normality of residuals
+elastic_jb_test <- jarque.bera.test(elastic_residuals)
+
+# RMSE and MAE
+elastic_rmse <- sqrt(mean((y_vector - elastic_pred)^2))
+elastic_mae <- mean(abs(y_vector - elastic_pred))
+
+# R squared and Adjusted R squared
+elastic_r_squared <- cor(y_vector, elastic_pred)^2
+elastic_adj_r_squared <- 1 - (1-elastic_r_squared)*(length(y_vector)-1)/(length(y_vector)-ncol(X_matrix)-1)
+
+# Print results
+cat("Elastic Net BP Test p-value:", elastic_bp_test$p.value, "\n")
+cat("Durbin-Watson statistic:", dw_statistic, "\n")
+cat("Elastic Net JB Test p-value:", elastic_jb_test$p.value, "\n")
+cat("Elastic Net RMSE:", elastic_rmse, "\n")
+cat("Elastic Net MAE:", elastic_mae, "\n")
+cat("Elastic Net R squared:", elastic_r_squared, "\n")
+cat("Elastic Net Adjusted R squared:", elastic_adj_r_squared, "\n")
+```
